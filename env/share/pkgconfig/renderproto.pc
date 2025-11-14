@@ -1,7 +1,0 @@
-prefix=/home/dante/projects/llmProjects/gemini_apps/env
-includedir=${prefix}/include
-
-Name: RenderProto
-Description: Render extension headers
-Version: 0.11.1
-Cflags: -I${includedir}
