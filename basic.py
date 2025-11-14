@@ -106,8 +106,7 @@ def process_pdf_and_query(user_prompt):
 # 3. Kiolesura cha Streamlit (UI)
 # **********************************************
 
-st.title("📄 AZABOYS tuchat tupate information za members")
-st.caption("Pata majibu kutoka kwenye PDF yako kwa kutumia Gemini 2.5 Flash")
+st.title("📄 AZABOYS  information members")
 
 # Eneo la kupakia faili
 # uploaded_file = st.file_uploader(
@@ -121,20 +120,20 @@ st.caption("Pata majibu kutoka kwenye PDF yako kwa kutumia Gemini 2.5 Flash")
     
     # Eneo la kuandika swali
 prompt = st.text_area(
-        "Andika swali lako kuhusu faili hili:", 
+        "Andika hitajio lako", 
         height=100
     )
 
-if st.button("Pata Jibu"):
+if st.button("Pata taarifa"):
     if not prompt:
         st.warning("Andika swali kabla ya kubonyeza 'Pata Jibu'.")
     else:
-        with st.spinner("Gemini inachakata hati..."):
+        with st.spinner("Mchakato..."):
             try:
                 # Ita kazi ya kuchakata na kupata jibu
                 response_text = process_pdf_and_query(prompt)
                 
-                st.subheader("Jibu kutoka kwa AI")
+                st.subheader("Pata taarifa")
                 st.info(response_text)
                 
             except Exception as e:
