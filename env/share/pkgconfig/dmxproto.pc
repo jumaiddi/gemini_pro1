@@ -1,0 +1,7 @@
+prefix=/home/dante/projects/llmProjects/gemini_apps/env
+includedir=${prefix}/include
+ 
+Name: DMXProto
+Description: DMX extension headers
+Version: 2.3.1
+Cflags: -I${includedir}

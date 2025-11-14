@@ -1,0 +1,141 @@
+from google import genai
+import os
+from dotenv import load_dotenv
+from google.genai import types
+from PIL import Image
+from pathlib import Path
+import streamlit as st
+
+load_dotenv()
+
+# client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY")) 
+
+# for model in client.models.list():
+#     print(model.name)
+    
+# prompt=input("Inter input: ")
+# image=Image.open("../rag_demo/image01.png")
+# chat=client.chats.create(model="gemini-2.5-pro")
+# userinput=input("User :")
+# while userinput != "endchat": 
+#     chat.append(f"User :{userinput}") 
+#     response=client.models.generate_content(
+#         model="gemini-2.5-pro",
+#         contents=chat,
+#         config=types.GenerateContentConfig(
+#             system_instruction="Answer 1 line not more than 50 words"
+#         ))
+#     chat.append(f"chatbot : {response.text}")
+#     print(response.text)
+#     userinput=input("User :")
+
+# while userinput!="endchat":
+#     response=chat.send_message(userinput)
+#     print("statbot :",response.text)
+#     userinput=input("User :")
+
+# grounding_tools=types.Tool(
+#     google_search=types.GoogleSearch()
+# )
+
+# response=client.models.generate_content(
+#     model="gemini-2.5-flash",
+#     contents="Who won uero cup 2024",
+#     config=types.GenerateContentConfig(
+#         tools=[grounding_tools]
+#     )
+# )
+# print(response.text)
+
+# filepath=Path("AZANIA.pdf")
+# doc_dat=filepath.read_bytes()
+
+# pdf=types.Part.from_bytes(
+#     data=doc_dat,
+#     mime_type="application/pdf"
+# )
+
+# response=client.models.generate_content(
+#     model="gemini-2.5-flash",
+#     contents=f"Naomba majina ya watu watano na namba zao za simu lkn hii ni data zetu za kawaida ya kikundi chetu {pdf}"
+# )
+
+# print(response.text)
+
+# Pakia .env file (kwa API key)
+load_dotenv()
+
+# **********************************************
+# 1. Usanidi wa Gemini Client
+# **********************************************
+try:
+    # Tumia GEMINI_API_KEY au GOOGLE_API_KEY kutoka .env
+   client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY")) 
+except Exception as e:
+    st.error("Tatizo la kuunganisha na Gemini API. Hakikisha umeweka GEMINI_API_KEY kwenye faili la .env.")
+    st.stop()
+
+
+# **********************************************
+# 2. Kazi ya Kuchakata PDF
+# **********************************************
+def process_pdf_and_query(user_prompt):
+    
+    filepath=Path("AZANIA.pdf")
+    doc_dat=filepath.read_bytes()
+
+    pdf=types.Part.from_bytes(
+        data=doc_dat,
+        mime_type="application/pdf"
+    )
+
+    # Unda orodha ya contents: PDF + Prompt
+    # Kumbuka: Prompt yako inahitaji kuwa kwenye Part tofauti (maandishi)
+    contents = [pdf, user_prompt]
+
+    # Omba jibu kutoka kwa Model
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=contents
+    )
+
+    return response.text
+
+
+# **********************************************
+# 3. Kiolesura cha Streamlit (UI)
+# **********************************************
+
+st.title("📄 AZABOYS tuchat tupate information za members")
+st.caption("Pata majibu kutoka kwenye PDF yako kwa kutumia Gemini 2.5 Flash")
+
+# Eneo la kupakia faili
+# uploaded_file = st.file_uploader(
+#     "Pakia faili lako la PDF (Maks. 20MB)", 
+#     type=["pdf"]
+# )
+
+# if uploaded_file is not None:
+#     # Onyesha faili limepakuliwa
+#     st.success(f"Faili **{uploaded_file.name}** limepakuliwa kwa mafanikio.")
+    
+    # Eneo la kuandika swali
+prompt = st.text_area(
+        "Andika swali lako kuhusu faili hili:", 
+        height=100
+    )
+
+if st.button("Pata Jibu"):
+    if not prompt:
+        st.warning("Andika swali kabla ya kubonyeza 'Pata Jibu'.")
+    else:
+        with st.spinner("Gemini inachakata hati..."):
+            try:
+                # Ita kazi ya kuchakata na kupata jibu
+                response_text = process_pdf_and_query(prompt)
+                
+                st.subheader("Jibu kutoka kwa AI")
+                st.info(response_text)
+                
+            except Exception as e:
+                st.error(f"Kosa limetokea wakati wa kuwasiliana na API: {e}")
