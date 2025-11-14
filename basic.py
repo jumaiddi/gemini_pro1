@@ -106,7 +106,7 @@ def process_pdf_and_query(user_prompt):
 # 3. Kiolesura cha Streamlit (UI)
 # **********************************************
 
-st.title("📄 AZABOYS  information members")
+st.markdown("<h4>📄 AZABOYS fetching information members App</h4>", unsafe_allow_html=True)
 
 # Eneo la kupakia faili
 # uploaded_file = st.file_uploader(
@@ -119,10 +119,13 @@ st.title("📄 AZABOYS  information members")
 #     st.success(f"Faili **{uploaded_file.name}** limepakuliwa kwa mafanikio.")
     
     # Eneo la kuandika swali
+st.markdown("###### Andika Hitajio Lako") 
+
 prompt = st.text_area(
-        "Andika hitajio lako", 
-        height=100
-    )
+    "Andika hitajio lako", # Hii sasa inakuwa label rahisi ya ndani
+    height=10,
+    label_visibility="collapsed" # Inaficha label ya ndani ili kuona H6 tu
+)
 
 if st.button("Pata taarifa"):
     if not prompt:
