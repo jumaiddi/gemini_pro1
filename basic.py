@@ -81,7 +81,7 @@ except Exception as e:
 # **********************************************
 def process_pdf_and_query(user_prompt):
     
-    filepath=Path("AZANIA.pdf")
+    filepath=Path(".data/AZANIA.pdf")
     doc_dat=filepath.read_bytes()
 
     pdf=types.Part.from_bytes(
