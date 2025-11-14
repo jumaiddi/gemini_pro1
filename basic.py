@@ -106,7 +106,7 @@ def process_pdf_and_query(user_prompt):
 # 3. Kiolesura cha Streamlit (UI)
 # **********************************************
 
-st.markdown("<h4>📄 AZABOYS fetching information members App</h4>", unsafe_allow_html=True)
+st.markdown("<h5>📄 AZABOYS fetching information members App</h5>", unsafe_allow_html=True)
 
 # Eneo la kupakia faili
 # uploaded_file = st.file_uploader(
