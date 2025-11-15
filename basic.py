@@ -82,7 +82,7 @@ except Exception as e:
 # **********************************************
 def process_pdf_and_query(user_prompt):
     
-    base64_data = st.secrets["AZANIA_PDF_DATA"]
+    base64_data = st.secrets["AZANIA_PDF"]
     
     # 2. Badilisha Base64 kurudi kwenye data ya binary (bytes)
     doc_dat = base64.b64decode(base64_data)
