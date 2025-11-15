@@ -5,6 +5,7 @@ from google.genai import types
 from PIL import Image
 from pathlib import Path
 import streamlit as st
+import base64
 
 load_dotenv()
 
@@ -81,8 +82,10 @@ except Exception as e:
 # **********************************************
 def process_pdf_and_query(user_prompt):
     
-    filepath=Path(".data/AZANIA.pdf")
-    doc_dat=filepath.read_bytes()
+    base64_data = st.secrets["AZANIA_PDF_DATA"]
+    
+    # 2. Badilisha Base64 kurudi kwenye data ya binary (bytes)
+    doc_dat = base64.b64decode(base64_data)
 
     pdf=types.Part.from_bytes(
         data=doc_dat,
