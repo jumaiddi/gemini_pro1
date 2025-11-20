@@ -74,7 +74,7 @@ print(response.text)
 load_dotenv()
 
 try:
-   client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY")) 
+   client = genai.Client(api_key=key) 
 except Exception as e:
     st.error("Tatizo la kuunganisha na Gemini API. Hakikisha umeweka GEMINI_API_KEY kwenye faili la .env.")
     st.stop()
