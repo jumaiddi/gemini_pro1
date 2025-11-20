@@ -9,11 +9,12 @@ import base64
 
 load_dotenv()
 
-api_key=st.secrets["GOOGLE_API_KEY"]
+api_key=st.secrets["GOOGLE_API_KEY1"]
 client = genai.Client(api_key=api_key) 
 
-for model in client.models.list():
-    print(model.name)
+if client is None:
+    for model in client.models.list():
+        print(model.name)
     
 # prompt=input("Inter input: ")
 # image=Image.open("../rag_demo/image01.png")
