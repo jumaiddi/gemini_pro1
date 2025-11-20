@@ -59,7 +59,7 @@ pdf=types.Part.from_bytes(
 
 response=client.models.generate_content(
     model="gemini-2.5-flash",
-    contents=f"Naomba majina ya watu watano na namba zao za simu lkn hii ni data zetu za kawaida ya kikundi chetu {pdf}"
+    contents=f"Naomba majina ya watu watano na namba zao za simu lkn hii ni data zetu za kawaida ya kikundi chetu {pdf} naomba utoe jibu kwa lugha ya kiswahili iliyosahihi"
 )
 
 print(response.text)
