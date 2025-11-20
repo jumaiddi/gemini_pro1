@@ -9,8 +9,8 @@ import base64
 
 load_dotenv()
 
-api_key=st.secrets["GOOGLE_API_KEY1"]
-api_key1=st.secrets["GOOGLE_API_KEY"]
+api_key=st.secrets["GOOGLE_API_KEY"]
+api_key1=st.secrets["GOOGLE_API_KEY1"]
 api_key2=st.secrets["GOOGLE_API_KEY2"]
 client = genai.Client(api_key=api_key) 
 
