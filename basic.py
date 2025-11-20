@@ -49,7 +49,7 @@ for model in client.models.list():
 # )
 # print(response.text)
 
-filepath=Path("AZANIA.pdf")
+filepath=Path("azabrothers.pdf")
 doc_dat=filepath.read_bytes()
 
 pdf=types.Part.from_bytes(
@@ -59,7 +59,7 @@ pdf=types.Part.from_bytes(
 
 response=client.models.generate_content(
     model="gemini-2.5-flash",
-    contents=f"Naomba majina ya watu watano na namba zao za simu lkn hii ni data zetu za kawaida ya kikundi chetu {pdf} naomba utoe jibu kwa lugha ya kiswahili iliyorasmi na huu ujembe 'Based on the OCR text' usiuonyeshe"
+    contents=f"Naomba unipatie taarifa yoyote itakayo uliziwa katika hii {pdf} ,hii ni data zetu za kawaida ya kikundi chetu {pdf} naomba utoe jibu kwa lugha ya kiswahili iliyorasmi na huu ujembe 'Based on the OCR text' usiuonyeshe"
 )
 
 print(response.text)
@@ -110,7 +110,7 @@ def process_pdf_and_query(user_prompt):
 # 3. Kiolesura cha Streamlit (UI)
 # **********************************************
 
-st.markdown("<h5>📄 Mfumo wa kupata taarifa za Mwanachama wa Azania 2006</h5>", unsafe_allow_html=True)
+st.markdown("<h5>📄 Mfumo wa kupata taarifa za kuhusu AzaBrothers</h5>", unsafe_allow_html=True)
 
 # Eneo la kupakia faili
 # uploaded_file = st.file_uploader(
