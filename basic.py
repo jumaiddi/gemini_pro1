@@ -140,7 +140,7 @@ if st.button("Pata taarifa"):
                 # Ita kazi ya kuchakata na kupata jibu
                 response_text = process_pdf_and_query(prompt)
                 
-                st.subheader("Pata taarifa")
+                # st.subheader("Pata taarifa")
                 st.info(response_text)
                 
             except Exception as e:
