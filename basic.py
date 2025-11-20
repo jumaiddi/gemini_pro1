@@ -87,7 +87,7 @@ def process_pdf_and_query(user_prompt):
 
     return response.text
 
-st.markdown("<h5>📄 Mfumo wa kupata taarifa za kuhusu Wanachama wa Azania 2006</h5>", unsafe_allow_html=True)
+st.markdown("<h5>📄 Mfumo wa kupata taarifa za Wanachama wa Azania 2006</h5>", unsafe_allow_html=True)
 
 # uploaded_file = st.file_uploader(
 #     "Pakia faili lako la PDF (Maks. 20MB)", 
