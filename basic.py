@@ -8,8 +8,10 @@ from pathlib import Path
 import streamlit as st
 import base64
 
+
 load_dotenv()
 
+working_client=None
 api_key=st.secrets["GOOGLE_API_KEY"]
 api_key1=st.secrets["GOOGLE_API_KEY1"]
 api_key2=st.secrets["GOOGLE_API_KEY2"]
@@ -17,6 +19,9 @@ for key in [api_key,api_key1,api_key2]:
     try:
         key=key
         client = genai.Client(api_key=key)
+        client.models.list()
+        working_client=client
+        break
     except errors.APIError as e:
         continue
     
@@ -62,20 +67,7 @@ pdf=types.Part.from_bytes(
     mime_type="application/pdf"
 )
 
-response=client.models.generate_content(
-    model="gemini-2.5-flash",
-    contents=f"Naomba unipatie taarifa yoyote itakayo uliziwa katika hii {pdf} ,hii ni data zetu za kawaida ya kikundi chetu {pdf} naomba utoe jibu kwa lugha ya kiswahili iliyorasmi na huu ujembe 'Based on the OCR text' usiuonyeshe"
-)
-
-print(response.text)
-
 load_dotenv()
-
-try:
-   client = genai.Client(api_key=key) 
-except Exception as e:
-    st.error("Tatizo la kuunganisha na Gemini API. Hakikisha umeweka GEMINI_API_KEY kwenye faili la .env.")
-    st.stop()
 
 def process_pdf_and_query(user_prompt):
 
@@ -84,13 +76,20 @@ def process_pdf_and_query(user_prompt):
         mime_type="application/pdf"
     )
     contents = [pdf, user_prompt]
-
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=contents
-    )
-
+    for key in [api_key,api_key1,api_key2]:
+        try:
+            working_client = genai.Client(api_key=key)
+            response = working_client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=contents,
+            )
+            break
+        except Exception as e:
+            continue
+        
     return response.text
+        
+
 
 st.markdown("<h5>📄 Mfumo wa kupata taarifa za Wanachama wa Azania 2006</h5>", unsafe_allow_html=True)
 
