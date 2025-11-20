@@ -9,10 +9,10 @@ import base64
 
 load_dotenv()
 
-# client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY")) 
+client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY")) 
 
-# for model in client.models.list():
-#     print(model.name)
+for model in client.models.list():
+    print(model.name)
     
 # prompt=input("Inter input: ")
 # image=Image.open("../rag_demo/image01.png")
@@ -48,20 +48,20 @@ load_dotenv()
 # )
 # print(response.text)
 
-# filepath=Path("AZANIA.pdf")
-# doc_dat=filepath.read_bytes()
+filepath=Path("AZANIA.pdf")
+doc_dat=filepath.read_bytes()
 
-# pdf=types.Part.from_bytes(
-#     data=doc_dat,
-#     mime_type="application/pdf"
-# )
+pdf=types.Part.from_bytes(
+    data=doc_dat,
+    mime_type="application/pdf"
+)
 
-# response=client.models.generate_content(
-#     model="gemini-2.5-flash",
-#     contents=f"Naomba majina ya watu watano na namba zao za simu lkn hii ni data zetu za kawaida ya kikundi chetu {pdf}"
-# )
+response=client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents=f"Naomba majina ya watu watano na namba zao za simu lkn hii ni data zetu za kawaida ya kikundi chetu {pdf}"
+)
 
-# print(response.text)
+print(response.text)
 
 # Pakia .env file (kwa API key)
 load_dotenv()
@@ -82,10 +82,10 @@ except Exception as e:
 # **********************************************
 def process_pdf_and_query(user_prompt):
     
-    base64_data = st.secrets["AZANIA_PDF"]
+    # base64_data = st.secrets["AZANIA_PDF"]
     
     # 2. Badilisha Base64 kurudi kwenye data ya binary (bytes)
-    doc_dat = base64.b64decode(base64_data)
+    # doc_dat = base64.b64decode(base64_data)
 
     pdf=types.Part.from_bytes(
         data=doc_dat,
@@ -109,7 +109,7 @@ def process_pdf_and_query(user_prompt):
 # 3. Kiolesura cha Streamlit (UI)
 # **********************************************
 
-st.markdown("<h5>📄 AZABOYS fetching information members App</h5>", unsafe_allow_html=True)
+st.markdown("<h5>📄 Mfumo wa kupata taarifa za Mwanachama wa Azania 2006</h5>", unsafe_allow_html=True)
 
 # Eneo la kupakia faili
 # uploaded_file = st.file_uploader(
