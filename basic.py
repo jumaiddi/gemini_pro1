@@ -49,7 +49,7 @@ for model in client.models.list():
 # )
 # print(response.text)
 
-filepath=Path("azabrothers.pdf")
+filepath=Path("AZANIA.pdf")
 doc_dat=filepath.read_bytes()
 
 pdf=types.Part.from_bytes(
