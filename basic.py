@@ -17,8 +17,6 @@ client = genai.Client(api_key=api_key)
 if client is None:
     client=genai.Client(api_key=api_key1)
 if client is None:
-    client=genai.Client(api_key=api_key)
-if client is None:
     client=genai.Client(api_key=api_key2)
 for model in client.models.list():
     print(model.name)
