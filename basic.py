@@ -2,6 +2,7 @@ from google import genai
 import os
 from dotenv import load_dotenv
 from google.genai import types
+from google.genai import errors
 from PIL import Image
 from pathlib import Path
 import streamlit as st
@@ -14,12 +15,12 @@ api_key1=st.secrets["GOOGLE_API_KEY1"]
 api_key2=st.secrets["GOOGLE_API_KEY2"]
 client = genai.Client(api_key=api_key) 
 
-if client is None:
-    client=genai.Client(api_key=api_key1)
-if client is None:
-    client=genai.Client(api_key=api_key2)
-for model in client.models.list():
-    print(model.name)
+for key in [api_key,api_key1,api_key2]:
+    try:
+        key=key
+        client = genai.Client(api_key=key)
+    except errors.APIError as e:
+        continue
     
 # prompt=input("Inter input: ")
 # image=Image.open("../rag_demo/image01.png")
