@@ -59,23 +59,30 @@ for key in [api_key,api_key1,api_key2]:
 # )
 # print(response.text)
 
-filepath=Path("AZANIA.pdf")
-doc_dat=filepath.read_bytes()
+# filepath=Path("/data/AZANIA.pdf")
+# doc_dat=filepath.read_bytes()
 
-pdf=types.Part.from_bytes(
+data_folder = Path("./data")
+all_pdf_data=[]
+
+for pdf_filepath in data_folder.glob("*.pdf"):
+    doc_dat = pdf_filepath.read_bytes()
+    pdf=types.Part.from_bytes(
     data=doc_dat,
     mime_type="application/pdf"
-)
+    )
+    all_pdf_data.append(pdf)
+    print(f"Nimesoma faili kwa mafanikio: {pdf_filepath.name}")
 
 load_dotenv()
 
 def process_pdf_and_query(user_prompt):
 
-    pdf=types.Part.from_bytes(
-        data=doc_dat,
-        mime_type="application/pdf"
-    )
-    contents = [pdf, user_prompt]
+    # pdf=types.Part.from_bytes(
+    #     data=doc_dat,
+    #     mime_type="application/pdf"
+    # )
+    contents = [all_pdf_data, user_prompt]
     for key in [api_key,api_key1,api_key2]:
         try:
             working_client = genai.Client(api_key=key)
