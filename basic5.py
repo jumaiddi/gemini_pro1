@@ -10,6 +10,8 @@ from google.genai import types
 from google.genai import errors
 import fitz  # PyMuPDF
 import time
+import sys
+import importlib.util
 
 # Load environment variables
 load_dotenv()
@@ -32,6 +34,37 @@ for key in [api_key, api_key1, api_key2]:
             continue
         except Exception as e:
             continue
+
+# Load basic1.py as module
+def load_basic1_module():
+    """Load basic1.py as a module"""
+    try:
+        # Import the basic1.py file directly
+        import basic1
+        
+        # Check if the required functions exist
+        if hasattr(basic1, 'process_pdf_and_query'):
+            return basic1
+        else:
+            st.error("basic1.py haina function 'process_pdf_and_query'")
+            return None
+    except ImportError as e:
+        # Try to load from current directory
+        try:
+            # Create module from file
+            spec = importlib.util.spec_from_file_location("basic1", "basic1.py")
+            basic1_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(basic1_module)
+            return basic1_module
+        except Exception as e:
+            st.error(f"Haiwezi kuload basic1.py: {str(e)}")
+            return None
+
+# Load the module
+basic1_module = load_basic1_module()
+
+if not working_client:
+    st.sidebar.warning("⚠️ Hakuna API key inayofanya kazi. Programu itatumia text search pekee.")
 
 # Read PDF files
 data_folder = Path("./data")
@@ -78,35 +111,7 @@ for pdf_filepath in data_folder.glob("*.pdf"):
         
     except Exception as e:
         st.error(f"❌ {pdf_filepath.name}: {str(e)}")
-all_pdf_data=[]
-for pdf_filepath in data_folder.glob("*.pdf"):
-    doc_dat = pdf_filepath.read_bytes()
-    pdf=types.Part.from_bytes(
-    data=doc_dat,
-    mime_type="application/pdf"
-    )
-    all_pdf_data.append(pdf)
-    print(f"Nimesoma faili kwa mafanikio: {pdf_filepath.name}")
-# YAKO CODE YA PROCESS_PDF_AND_QUERY
-def process_pdf_and_query(user_prompt):
 
-    # pdf=types.Part.from_bytes(
-    #     data=doc_dat,
-    #     mime_type="application/pdf"
-    # )
-    contents = [all_pdf_data, user_prompt]
-    for key in [api_key,api_key1,api_key2]:
-        try:
-            working_client = genai.Client(api_key=key)
-            response = working_client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=contents,
-            )
-            break
-        except Exception as e:
-            continue
-        
-    return response.text
 # Cache for faster performance
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_relevant_pages_smart(user_prompt):
@@ -193,13 +198,36 @@ def safe_api_call(contents, max_retries=2):
                 break
     return None, False
 
-def process_pdf_with_suggested_pages(user_prompt):
+def process_with_basic1(prompt):
+    """Use basic1.py module for text explanation"""
+    if basic1_module:
+        try:
+            # Prepare PDF data for basic1
+            all_pdf_data = []
+            for page in pdf_pages_data:
+                all_pdf_data.append(page["pdf_data"])
+            
+            # Call basic1 function
+            response = basic1_module.process_pdf_and_query(prompt)
+            return response
+        except Exception as e:
+            st.error(f"Kosa katika basic1: {str(e)}")
+            return None
+    return None
+
+def process_pdf_with_suggested_pages(user_prompt, use_basic1=False):
     """Get information from relevant pages"""
     # Get relevant pages
     relevant_pages = get_relevant_pages_smart(user_prompt)
     
     if not relevant_pages:
         return "Samahani, sijaona kurasa zinazohusiana na swali lako.", [], []
+    
+    # If using basic1 for text explanation
+    if use_basic1:
+        basic1_response = process_with_basic1(user_prompt)
+        if basic1_response:
+            return basic1_response, relevant_pages, []
     
     # Ask user to select pages
     selected_pages = []
@@ -335,10 +363,10 @@ with st.sidebar:
     # Mode selection
     search_mode = st.radio(
         "**Chagua aina ya utafutaji:**",
-        ["text_explanation", "image_search"],
+        ["normal", "text_explanation", "image_search"],
         format_func=lambda x: {
-            # "normal": "🔍 Utafutaji wa Kawaida",
-            "text_explanation": "📝 Text Explanation (Direct)",
+            "normal": "🔍 Utafutaji wa Kawaida",
+            "text_explanation": "📝 Text Explanation (basic1)",
             "image_search": "📸 Utafutaji wa Picha"
         }[x]
     )
@@ -351,25 +379,31 @@ with st.sidebar:
     
     # api_status = "✅ Inatumika" if working_client else "❌ Haipatikani"
     # st.write(f"🤖 API Status: {api_status}")
+    
+    # basic1_status = "✅ Imeload" if basic1_module else "❌ Haijaload"
+    # st.write(f"📝 basic1 Module: {basic1_status}")
+    
+    if not basic1_module:
+        st.error("Haiwezi kuload basic1.py. Hakikisha iko katika folder ile ile.")
 
 # Main content
-st.subheader("📄 Mfumo wa Taarifa - Azania 2006")
+st.title("📄 Mfumo wa Taarifa - Azania 2006")
 st.markdown("---")
 
 # Show current mode
 mode_display = {
-    # "normal": "🔍 Utafutaji wa Kawaida",
-    "text_explanation": "📝 Text Explanation (Direct Code)",
+    "normal": "🔍 Utafutaji wa Kawaida",
+    "text_explanation": "📝 Text Explanation (basic1 Module)",
     "image_search": "📸 Utafutaji wa Picha"
 }
-# st.info(f"**Hali ya Sasa:** {mode_display[search_mode]}")
+st.info(f"**Hali ya Sasa:** {mode_display[search_mode]}")
 
 # Search input
 col1, col2 = st.columns([4, 1])
 with col1:
     prompt = st.text_input(
-        "####🔍 **Andika hitajio lako:**"
-        # placeholder="Mfano: jina la mwanachama, namba ya kumbukumbu..."
+        "🔍 **Andika hitajio lako:**",
+        placeholder="Mfano: jina la mwanachama, namba ya kumbukumbu..."
     )
 
 with col2:
@@ -419,21 +453,20 @@ if preview_btn:
 if search_btn and prompt:
     with st.spinner("🔍 Inatafuta taarifa..."):
         try:
-            # MODE 1: TEXT EXPLANATION (YOUR DIRECT CODE)
+            # MODE 1: TEXT EXPLANATION (basic1 module)
             if search_mode == "text_explanation":
-                st.markdown("## 📝 Text Explanation (Direct Code)")
+                st.markdown("## 📝 Text Explanation (basic1 Module)")
                 st.markdown("---")
                 
-                try:
-                    # Ita kazi ya kuchakata na kupata jibu - DIRECT CALL
-                    response_text = process_pdf_and_query(prompt)
-                    
-                    st.subheader("📋 Majibu:")
-                    st.info(response_text)
-                    st.success("✅ Maelezo yametolewa kwa kutumia direct code!")
-                    
-                except Exception as e:
-                    st.error(f"Kosa limetokea wakati wa kuwasiliana na API: {e}")
+                if basic1_module:
+                    response_text = process_with_basic1(prompt)
+                    if response_text:
+                        st.info(response_text)
+                        st.success("✅ Maelezo yametolewa kwa kutumia basic1.py module")
+                    else:
+                        st.warning("Haiwezi kupata maelezo kutoka basic1. Jaribu njia nyingine.")
+                else:
+                    st.error("basic1 module haijaload. Hakikisha basic1.py iko katika folder ile ile.")
             
             # MODE 2: IMAGE SEARCH
             elif search_mode == "image_search" or get_images:
@@ -457,46 +490,46 @@ if search_btn and prompt:
                             )
                     
                     # Extract and show images
-                    # if get_images:
-                    #     st.markdown("### 📸 Picha Zilizobainika")
-                    #     extracted_images = extract_images_from_pages(selected_pages)
+                    if get_images:
+                        st.markdown("### 📸 Picha Zilizobainika")
+                        extracted_images = extract_images_from_pages(selected_pages)
                         
-                    #     if extracted_images:
-                    #         st.success(f"✅ Nimepata picha {len(extracted_images)}")
+                        if extracted_images:
+                            st.success(f"✅ Nimepata picha {len(extracted_images)}")
                             
-                    #         img_cols = st.columns(min(4, len(extracted_images)))
-                    #         for idx, img_data in enumerate(extracted_images):
-                    #             with img_cols[idx % 4]:
-                    #                 st.image(
-                    #                     img_data["image"],
-                    #                     caption=img_data["description"],
-                    #                     use_container_width=True
-                    #                 )
-                    #     else:
-                    #         st.info("ℹ️ Hakuna picha zilizopatikana kwenye kurasa hizi.")
+                            img_cols = st.columns(min(4, len(extracted_images)))
+                            for idx, img_data in enumerate(extracted_images):
+                                with img_cols[idx % 4]:
+                                    st.image(
+                                        img_data["image"],
+                                        caption=img_data["description"],
+                                        use_container_width=True
+                                    )
+                        else:
+                            st.info("ℹ️ Hakuna picha zilizopatikana kwenye kurasa hizi.")
             
             # MODE 3: NORMAL SEARCH
-            # else:
-            #     response_text, selected_pages, page_info = process_pdf_with_suggested_pages(prompt)
+            else:
+                response_text, selected_pages, page_info = process_pdf_with_suggested_pages(prompt, use_basic1=False)
                 
-            #     st.markdown("## 📋 Matokeo ya Utafutaji")
-            #     st.markdown("---")
+                st.markdown("## 📋 Matokeo ya Utafutaji")
+                st.markdown("---")
                 
-            #     # Display response text
-            #     st.markdown(response_text)
+                # Display response text
+                st.markdown(response_text)
                 
-            #     # Show selected pages
-            #     if selected_pages:
-            #         st.markdown(f"### 📄 Kurasa Zilizochaguliwa ({len(selected_pages)})")
+                # Show selected pages
+                if selected_pages:
+                    st.markdown(f"### 📄 Kurasa Zilizochaguliwa ({len(selected_pages)})")
                     
-            #         page_cols = st.columns(min(3, len(selected_pages)))
-            #         for idx, page in enumerate(selected_pages):
-            #             with page_cols[idx % 3]:
-            #                 st.image(
-            #                     page["image"],
-            #                     caption=f"**{page['pdf_name']}** - Ukurasa {page['page_number']}",
-            #                     use_container_width=True
-            #                 )
+                    page_cols = st.columns(min(3, len(selected_pages)))
+                    for idx, page in enumerate(selected_pages):
+                        with page_cols[idx % 3]:
+                            st.image(
+                                page["image"],
+                                caption=f"**{page['pdf_name']}** - Ukurasa {page['page_number']}",
+                                use_container_width=True
+                            )
             
             # Quota warning
             if not working_client and search_mode != "text_explanation":
@@ -517,6 +550,11 @@ st.markdown("---")
 st.markdown(f"""
 <div style='text-align: center'>
     <small>📊 Mfumo wa Taarifa - Azania 2006 | 
-    <span style='color: green'>Mode: {mode_display[search_mode]}</span></small>
+    <span style='color: green'>Mode: {mode_display[search_mode]}</span> | 
+    Modules: basic4 + {'basic1' if basic1_module else 'none'}</small>
 </div>
 """, unsafe_allow_html=True)
+
+# Initialize session state for chat history
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []

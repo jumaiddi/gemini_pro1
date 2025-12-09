@@ -4,3 +4,8 @@ python-dotenv
 pathlib
 Pillow
 streamlit-authenticator
+langchain
+langchain-community
+langchain-google-genai
+pypdf
+pinecone

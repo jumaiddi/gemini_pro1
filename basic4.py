@@ -16,22 +16,25 @@ load_dotenv()
 
 # Initialize working client
 working_client = None
-api_key = st.secrets.get("GOOGLE_API_KEY", "")
-api_key1 = st.secrets.get("GOOGLE_API_KEY1", "")
-api_key2 = st.secrets.get("GOOGLE_API_KEY2", "")
+api_key = st.secrets["GOOGLE_API_KEY"]
+api_key1 = st.secrets["GOOGLE_API_KEY1"]
+api_key2 = st.secrets["GOOGLE_API_KEY2"]
 
 # Test API keys
 for key in [api_key, api_key1, api_key2]:
-    if key:
-        try:
-            client = genai.Client(api_key=key)
-            client.models.list()
-            working_client = client
-            break
-        except errors.APIError as e:
-            continue
-        except Exception as e:
-            continue
+    try:
+        client = genai.Client(api_key=key)
+        client.models.list()
+        working_client = client
+        # st.success(f"✅ API key inatumika: {key[:10]}...")
+        break
+    except errors.APIError as e:
+        continue
+    except Exception as e:
+        continue
+
+if not working_client:
+    st.warning("⚠️ Hakuna API key inayofanya kazi. Programu itatumia text search pekee.")
 
 # Read PDF files
 data_folder = Path("./data")
@@ -71,42 +74,15 @@ for pdf_filepath in data_folder.glob("*.pdf"):
                 "pdf_data": pdf_page,
                 "image": pil_image,
                 "full_image_bytes": img_bytes,
-                "page_text": page.get_text("text")
+                "page_text": page.get_text("text")  # Get page text
             })
         
         doc.close()
+        # st.success(f"✅ {pdf_filepath.name} - Kurasa: {len(doc)}")
         
     except Exception as e:
         st.error(f"❌ {pdf_filepath.name}: {str(e)}")
-all_pdf_data=[]
-for pdf_filepath in data_folder.glob("*.pdf"):
-    doc_dat = pdf_filepath.read_bytes()
-    pdf=types.Part.from_bytes(
-    data=doc_dat,
-    mime_type="application/pdf"
-    )
-    all_pdf_data.append(pdf)
-    print(f"Nimesoma faili kwa mafanikio: {pdf_filepath.name}")
-# YAKO CODE YA PROCESS_PDF_AND_QUERY
-def process_pdf_and_query(user_prompt):
 
-    # pdf=types.Part.from_bytes(
-    #     data=doc_dat,
-    #     mime_type="application/pdf"
-    # )
-    contents = [all_pdf_data, user_prompt]
-    for key in [api_key,api_key1,api_key2]:
-        try:
-            working_client = genai.Client(api_key=key)
-            response = working_client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=contents,
-            )
-            break
-        except Exception as e:
-            continue
-        
-    return response.text
 # Cache for faster performance
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_relevant_pages_smart(user_prompt):
@@ -119,9 +95,10 @@ def get_relevant_pages_smart(user_prompt):
     # Extract keywords from prompt
     prompt_keywords = []
     for word in user_prompt.lower().split():
-        if len(word) > 3:
+        if len(word) > 3:  # Long words only
             prompt_keywords.append(word)
     
+    # If no keywords, use the whole prompt
     if not prompt_keywords:
         prompt_keywords = [user_prompt.lower()]
     
@@ -138,12 +115,13 @@ def get_relevant_pages_smart(user_prompt):
                 matched_words.append(keyword)
         
         if match_count > 0:
-            # Find context
+            # Find context (2 lines before and after match)
             context = ""
             lines = page_data["page_text"].split('\n')
             for i, line in enumerate(lines):
                 line_lower = line.lower()
                 if any(keyword in line_lower for keyword in matched_words):
+                    # Take lines before and after
                     start = max(0, i-2)
                     end = min(len(lines), i+3)
                     context_lines = lines[start:end]
@@ -165,6 +143,7 @@ def get_relevant_pages_smart(user_prompt):
     # Sort by match score
     relevant_pages.sort(key=lambda x: x["match_score"], reverse=True)
     
+    # Return top pages (max 5)
     return relevant_pages[:5]
 
 def safe_api_call(contents, max_retries=2):
@@ -174,7 +153,7 @@ def safe_api_call(contents, max_retries=2):
             try:
                 client = genai.Client(api_key=key)
                 response = client.models.generate_content(
-                    model="gemini-1.5-flash",
+                    model="gemini-1.5-flash",  # Use 1.5-flash (higher quota)
                     contents=contents,
                     config=types.GenerateContentConfig(
                         max_output_tokens=500,
@@ -184,41 +163,59 @@ def safe_api_call(contents, max_retries=2):
                 return response.text, True
             except errors.APIError as e:
                 if "429" in str(e) and attempt < max_retries - 1:
-                    wait_time = 2 ** attempt
+                    wait_time = 2 ** attempt  # Exponential backoff
                     time.sleep(wait_time)
                     continue
                 else:
+                    # Try next key
                     break
             except Exception as e:
+                # Try next key
                 break
     return None, False
 
 def process_pdf_with_suggested_pages(user_prompt):
     """Get information from relevant pages"""
-    # Get relevant pages
+    # Get relevant pages (text-based only)
     relevant_pages = get_relevant_pages_smart(user_prompt)
     
     if not relevant_pages:
         return "Samahani, sijaona kurasa zinazohusiana na swali lako.", [], []
+    
+    # Show found pages
+    page_info = []
+    for i, page in enumerate(relevant_pages):
+        page_info.append({
+            "index": i + 1,
+            "pdf_name": page["pdf_name"],
+            "page_number": page["page_number"],
+            "description": page["description"],
+            "context": page.get("context", ""),
+            "match_score": page["match_score"]
+        })
     
     # Ask user to select pages
     selected_pages = []
     if len(relevant_pages) > 1:
         st.write("### 📄 Chagua Kurasa:")
         
+        # Show page previews
         cols = st.columns(min(3, len(relevant_pages)))
         selected_indices = []
         
         for i, page in enumerate(relevant_pages):
             with cols[i % 3]:
+                # Show page preview
                 st.image(
                     page["image"],
                     caption=f"Ukurasa {page['page_number']}",
                     use_container_width=True
                 )
                 
+                # Show match info
                 st.caption(f"**Matched:** {', '.join(page['matched_words'][:2])}")
                 
+                # Checkbox for selection
                 if st.checkbox(
                     f"Chagua ukurasa {page['page_number']}",
                     key=f"select_page_{i}",
@@ -229,6 +226,7 @@ def process_pdf_with_suggested_pages(user_prompt):
         selected_pages = [relevant_pages[i] for i in selected_indices]
     else:
         selected_pages = relevant_pages
+        # Show the single page
         st.image(
             relevant_pages[0]["image"],
             caption=f"Ukurasa {relevant_pages[0]['page_number']}",
@@ -242,24 +240,28 @@ def process_pdf_with_suggested_pages(user_prompt):
     response_text = ""
     api_used = False
     
-    if working_client and len(selected_pages) <= 2:
+    if working_client and len(selected_pages) <= 2:  # Limit API calls
         try:
+            # Prepare content for API
             contents = [
                 f"Swali la mtumiaji: {user_prompt}\n\n"
-                f"Jibu kulingana na kurasa {len(selected_pages)} zilizochaguliwa.\n\n"
+                f"Jibu kulingana na kurasa {len(selected_pages)} zilizochaguliwa. "
+                f"Toa majibu mafupi na yenye uhakika.\n\n"
                 f"Ukurasa 1: {selected_pages[0].get('context', '')[:500]}"
             ]
             
+            # Add PDF data if available
             if len(selected_pages) == 1:
                 contents.append(selected_pages[0]["data"])
             
+            # Make API call
             api_response, api_success = safe_api_call(contents)
             
             if api_success:
                 response_text = f"**🤖 Majibu (Gemini API):**\n\n{api_response}"
                 api_used = True
             else:
-                response_text = "**ℹ️ Taarifa (Bila API):**\n\n"
+                response_text = "**ℹ️ Taarifa (Bila API - Quota Imekwisha):**\n\n"
         
         except Exception as e:
             response_text = "**ℹ️ Taarifa (Bila API):**\n\n"
@@ -283,9 +285,10 @@ def process_pdf_with_suggested_pages(user_prompt):
         response_text += "\n---\n"
         response_text += "**💡 Usaidizi:**\n"
         response_text += "1. Tumia maneno mahususi zaidi kwa matokeo bora\n"
-        response_text += "2. Jaribu kutumia 'Text Explanation' option\n"
+        response_text += "2. API quota imekwisha kwa leo, itarudi kesho\n"
+        response_text += "3. Unaweza kuangalia kurasa hapo juu kwa maelezo zaidi"
     
-    return response_text, selected_pages, []
+    return response_text, selected_pages, page_info
 
 def extract_images_from_pages(selected_pages):
     """Extract images from selected pages"""
@@ -293,17 +296,20 @@ def extract_images_from_pages(selected_pages):
     
     for page_meta in selected_pages:
         try:
+            # Extract images from PDF page
             doc = fitz.open(stream=page_meta["data"].file_data, filetype="pdf")
             page = doc[0]
             
             images = page.get_images()
-            for img_index, img in enumerate(images[:3]):
+            for img_index, img in enumerate(images[:3]):  # Max 3 images per page
                 xref = img[0]
                 base_image = doc.extract_image(xref)
                 image_bytes = base_image["image"]
                 
+                # Convert to PIL Image
                 pil_image = Image.open(io.BytesIO(image_bytes))
                 
+                # Only include reasonably sized images
                 if pil_image.width > 50 and pil_image.height > 50:
                     extracted_images.append({
                         "image": pil_image,
@@ -327,55 +333,21 @@ st.set_page_config(
     layout="wide"
 )
 
-# Sidebar with mode selection
-with st.sidebar:
-    st.title("⚙️ Chagua Njia ya Utafutaji")
-    st.markdown("---")
-    
-    # Mode selection
-    search_mode = st.radio(
-        "**Chagua aina ya utafutaji:**",
-        ["text_explanation", "image_search"],
-        format_func=lambda x: {
-            # "normal": "🔍 Utafutaji wa Kawaida",
-            "text_explanation": "📝 Text Explanation (Direct)",
-            "image_search": "📸 Utafutaji wa Picha"
-        }[x]
-    )
-    
-    st.markdown("---")
-    
-    # System info
-    # st.write("### 📊 Maelezo ya Mfumo")
-    # st.write(f"📄 Kurasa Zote: {len(pdf_pages_data)}")
-    
-    # api_status = "✅ Inatumika" if working_client else "❌ Haipatikani"
-    # st.write(f"🤖 API Status: {api_status}")
-
 # Main content
-st.subheader("📄 Mfumo wa Taarifa - Azania 2006")
+st.title("📄 Mfumo wa Taarifa - Azania 2006")
 st.markdown("---")
-
-# Show current mode
-mode_display = {
-    # "normal": "🔍 Utafutaji wa Kawaida",
-    "text_explanation": "📝 Text Explanation (Direct Code)",
-    "image_search": "📸 Utafutaji wa Picha"
-}
-# st.info(f"**Hali ya Sasa:** {mode_display[search_mode]}")
 
 # Search input
 col1, col2 = st.columns([4, 1])
 with col1:
     prompt = st.text_input(
-        "####🔍 **Andika hitajio lako:**"
-        # placeholder="Mfano: jina la mwanachama, namba ya kumbukumbu..."
+        "🔍 **Andika hitajio lako:**"
     )
 
 with col2:
     st.write("")  # Spacing
     st.write("")  # Spacing
-    get_images = st.checkbox("📸 Pata picha", value=(search_mode == "image_search"))
+    get_images = st.checkbox("📸 Pata picha", value=False)
 
 # Buttons
 col_btn1, col_btn2, col_btn3 = st.columns(3)
@@ -397,6 +369,7 @@ if preview_btn:
     if not pdf_pages_data:
         st.warning("Hakuna PDF files zilizosomwa.")
     else:
+        # Group by PDF file
         pdf_groups = {}
         for page in pdf_pages_data:
             pdf_name = page["pdf_name"]
@@ -404,6 +377,7 @@ if preview_btn:
                 pdf_groups[pdf_name] = []
             pdf_groups[pdf_name].append(page)
         
+        # Show each PDF
         for pdf_name, pages in pdf_groups.items():
             with st.expander(f"📖 {pdf_name} ({len(pages)} kurasa)", expanded=False):
                 cols = st.columns(min(4, len(pages)))
@@ -411,112 +385,85 @@ if preview_btn:
                     with cols[idx % 4]:
                         st.image(
                             page["image"],
+                            # caption=f"Ukurasa {page['page_number']}",
                             use_container_width=True
                         )
-                        st.caption(f"Ukurasa {page['page_number']}")
+                        # st.caption(f"Ukurasa {page['page_number']}")
 
 # Handle search button
 if search_btn and prompt:
     with st.spinner("🔍 Inatafuta taarifa..."):
         try:
-            # MODE 1: TEXT EXPLANATION (YOUR DIRECT CODE)
-            if search_mode == "text_explanation":
-                st.markdown("## 📝 Text Explanation (Direct Code)")
-                st.markdown("---")
-                
-                try:
-                    # Ita kazi ya kuchakata na kupata jibu - DIRECT CALL
-                    response_text = process_pdf_and_query(prompt)
-                    
-                    st.subheader("📋 Majibu:")
-                    st.info(response_text)
-                    st.success("✅ Maelezo yametolewa kwa kutumia direct code!")
-                    
-                except Exception as e:
-                    st.error(f"Kosa limetokea wakati wa kuwasiliana na API: {e}")
+            # Process the request
+            response_text, selected_pages, page_info = process_pdf_with_suggested_pages(prompt)
             
-            # MODE 2: IMAGE SEARCH
-            elif search_mode == "image_search" or get_images:
-                response_text, selected_pages, page_info = process_pdf_with_suggested_pages(prompt)
+            # Display results
+            st.markdown("## 📋 Matokeo ya Utafutaji")
+            st.markdown("---")
+            if selected_pages:
+                st.markdown(f"### 📄 Kurasa Zilizochaguliwa ({len(selected_pages)})")
                 
-                # Display results
-                st.markdown("## 📸 Matokeo ya Utafutaji wa Picha")
-                st.markdown("---")
+                # Display each selected page
+                page_cols = st.columns(min(3, len(selected_pages)))
+                for idx, page in enumerate(selected_pages):
+                    with page_cols[idx % 3]:
+                        st.image(
+                            page["image"],
+                            caption=f"**{page['pdf_name']}** - Ukurasa {page['page_number']}",
+                            use_container_width=True
+                        )
                 
-                if selected_pages:
-                    st.markdown(f"### 📄 Kurasa Zilizochaguliwa ({len(selected_pages)})")
+                # Extract and show images if requested
+                if get_images:
+                    st.markdown("### 📸 Picha Zilizopatikana")
+                    extracted_images = extract_images_from_pages(selected_pages)
                     
-                    # Display each selected page
-                    page_cols = st.columns(min(3, len(selected_pages)))
-                    for idx, page in enumerate(selected_pages):
-                        with page_cols[idx % 3]:
-                            st.image(
-                                page["image"],
-                                caption=f"**{page['pdf_name']}** - Ukurasa {page['page_number']}",
-                                use_container_width=True
-                            )
-                    
-                    # Extract and show images
-                    # if get_images:
-                    #     st.markdown("### 📸 Picha Zilizobainika")
-                    #     extracted_images = extract_images_from_pages(selected_pages)
+                    if extracted_images:
+                        st.success(f"✅ Nimepata picha {len(extracted_images)}")
                         
-                    #     if extracted_images:
-                    #         st.success(f"✅ Nimepata picha {len(extracted_images)}")
-                            
-                    #         img_cols = st.columns(min(4, len(extracted_images)))
-                    #         for idx, img_data in enumerate(extracted_images):
-                    #             with img_cols[idx % 4]:
-                    #                 st.image(
-                    #                     img_data["image"],
-                    #                     caption=img_data["description"],
-                    #                     use_container_width=True
-                    #                 )
-                    #     else:
-                    #         st.info("ℹ️ Hakuna picha zilizopatikana kwenye kurasa hizi.")
-            
-            # MODE 3: NORMAL SEARCH
-            # else:
-            #     response_text, selected_pages, page_info = process_pdf_with_suggested_pages(prompt)
-                
-            #     st.markdown("## 📋 Matokeo ya Utafutaji")
-            #     st.markdown("---")
-                
-            #     # Display response text
-            #     st.markdown(response_text)
-                
-            #     # Show selected pages
-            #     if selected_pages:
-            #         st.markdown(f"### 📄 Kurasa Zilizochaguliwa ({len(selected_pages)})")
-                    
-            #         page_cols = st.columns(min(3, len(selected_pages)))
-            #         for idx, page in enumerate(selected_pages):
-            #             with page_cols[idx % 3]:
-            #                 st.image(
-            #                     page["image"],
-            #                     caption=f"**{page['pdf_name']}** - Ukurasa {page['page_number']}",
-            #                     use_container_width=True
-            #                 )
+                        # Display images
+                        img_cols = st.columns(min(4, len(extracted_images)))
+                        for idx, img_data in enumerate(extracted_images):
+                            with img_cols[idx % 4]:
+                                st.image(
+                                    img_data["image"],
+                                    caption=img_data["description"],
+                                    use_container_width=True
+                                )
+                    else:
+                        st.info("ℹ️ Hakuna picha zilizopatikana kwenye kurasa hizi.")
             
             # Quota warning
-            if not working_client and search_mode != "text_explanation":
+            if not working_client:
                 st.warning("""
                 ⚠️ **API Haipatikani kwa Sasa:**
-                - Quota ya Gemini API imekwisha
-                - Jaribu kutumia 'Text Explanation' option
+                - Quota ya Gemini API imekwisha kwa leo
+                - Matumizi yanakua kwa text search tu
+                - Jaribu kesho au tumia maneno tofauti ya kutafuta
                 """)
             
         except Exception as e:
             st.error(f"❌ Kosa limetokea: {str(e)}")
+            st.info("""
+            💡 **Jaribu hii:**
+            1. Hakikisha PDF files ziko kwenye folder `data/`
+            2. Tumia maneno mahususi zaidi
+            3. Jaribu kesho kwa API quota mpya
+            """)
 
 elif search_btn and not prompt:
     st.warning("⚠️ Tafadhali andika hitajio lako kabla ya kubonyeza 'Tafuta Taarifa'.")
 
 # Footer
 st.markdown("---")
-st.markdown(f"""
+st.markdown("""
 <div style='text-align: center'>
     <small>📊 Mfumo wa Taarifa - Azania 2006 | 
-    <span style='color: green'>Mode: {mode_display[search_mode]}</span></small>
+    <span style='color: green'>API Status: {'✅' if working_client else '❌'}</span> | 
+    Matumizi: Text Search {'+ API' if working_client else ''}</small>
 </div>
 """, unsafe_allow_html=True)
+
+# Initialize session state for chat history
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
