@@ -87,13 +87,8 @@ for pdf_filepath in data_folder.glob("*.pdf"):
     )
     all_pdf_data.append(pdf)
     print(f"Nimesoma faili kwa mafanikio: {pdf_filepath.name}")
-# YAKO CODE YA PROCESS_PDF_AND_QUERY
-def process_pdf_and_query(user_prompt):
 
-    # pdf=types.Part.from_bytes(
-    #     data=doc_dat,
-    #     mime_type="application/pdf"
-    # )
+def process_pdf_and_query(user_prompt):
     contents = [all_pdf_data, user_prompt]
     for key in [api_key,api_key1,api_key2]:
         try:
@@ -162,7 +157,6 @@ def get_relevant_pages_smart(user_prompt):
                 "context": context[:300] + "..." if len(context) > 300 else context
             })
     
-    # Sort by match score
     relevant_pages.sort(key=lambda x: x["match_score"], reverse=True)
     
     return relevant_pages
@@ -337,20 +331,12 @@ with st.sidebar:
         "**Chagua aina ya utafutaji:**",
         ["text_explanation", "image_search"],
         format_func=lambda x: {
-            # "normal": "🔍 Utafutaji wa Kawaida",
             "text_explanation": "📝 Taarifa ya maelezo",
             "image_search": "📸 Taarifa ya Picha"
         }[x]
     )
     
     st.markdown("---")
-    
-    # System info
-    # st.write("### 📊 Maelezo ya Mfumo")
-    # st.write(f"📄 Kurasa Zote: {len(pdf_pages_data)}")
-    
-    # api_status = "✅ Inatumika" if working_client else "❌ Haipatikani"
-    # st.write(f"🤖 API Status: {api_status}")
 
 # Main content
 st.subheader("📄 Mfumo wa Taarifa - Azania 2006")
@@ -358,20 +344,18 @@ st.markdown("---")
 
 # Show current mode
 mode_display = {
-    # "normal": "🔍 Utafutaji wa Kawaida",
     "text_explanation": "📝 Taarifa ya maelezo",
     "image_search": "📸 Taarifa ya Picha"
 }
-# st.info(f"**Hali ya Sasa:** {mode_display[search_mode]}")
 
 # Search input
 col1, col2 = st.columns([4, 1])
 with col1:
     st.markdown("#### Andika hitajio")
-    prompt = st.text_input(
-        ""
-        # placeholder="Mfano: jina la mwanachama, namba ya kumbukumbu..."
-    )
+prompt = st.text_input("",
+    label_visibility="collapsed",
+    placeholder="Andika hitajio lako hapa..."
+)
 
 with col2:
     st.write("")  # Spacing
@@ -456,49 +440,6 @@ if search_btn and prompt:
                                 caption=f"**{page['pdf_name']}** - Ukurasa {page['page_number']}",
                                 use_container_width=True
                             )
-                    
-                    # Extract and show images
-                    # if get_images:
-                    #     st.markdown("### 📸 Picha Zilizobainika")
-                    #     extracted_images = extract_images_from_pages(selected_pages)
-                        
-                    #     if extracted_images:
-                    #         st.success(f"✅ Nimepata picha {len(extracted_images)}")
-                            
-                    #         img_cols = st.columns(min(4, len(extracted_images)))
-                    #         for idx, img_data in enumerate(extracted_images):
-                    #             with img_cols[idx % 4]:
-                    #                 st.image(
-                    #                     img_data["image"],
-                    #                     caption=img_data["description"],
-                    #                     use_container_width=True
-                    #                 )
-                    #     else:
-                    #         st.info("ℹ️ Hakuna picha zilizopatikana kwenye kurasa hizi.")
-            
-            # MODE 3: NORMAL SEARCH
-            # else:
-            #     response_text, selected_pages, page_info = process_pdf_with_suggested_pages(prompt)
-                
-            #     st.markdown("## 📋 Matokeo ya Utafutaji")
-            #     st.markdown("---")
-                
-            #     # Display response text
-            #     st.markdown(response_text)
-                
-            #     # Show selected pages
-            #     if selected_pages:
-            #         st.markdown(f"### 📄 Kurasa Zilizochaguliwa ({len(selected_pages)})")
-                    
-            #         page_cols = st.columns(min(3, len(selected_pages)))
-            #         for idx, page in enumerate(selected_pages):
-            #             with page_cols[idx % 3]:
-            #                 st.image(
-            #                     page["image"],
-            #                     caption=f"**{page['pdf_name']}** - Ukurasa {page['page_number']}",
-            #                     use_container_width=True
-            #                 )
-            
             # Quota warning
             if not working_client and search_mode != "text_explanation":
                 st.warning("""
