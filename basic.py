@@ -404,13 +404,11 @@ if preview_btn:
 if search_btn and prompt:
     with st.spinner("🔍 Inatafuta taarifa..."):
         try:
-            # MODE 1: TEXT EXPLANATION (YOUR DIRECT CODE)
             if search_mode == "text_explanation":
                 st.markdown("#### 📝 Taarifa ya maelezo")
                 st.markdown("---")
                 
                 try:
-                    # Ita kazi ya kuchakata na kupata jibu - DIRECT CALL
                     response_text = process_pdf_and_query(prompt)
                     
                     st.subheader("📋 Majibu:")
@@ -458,7 +456,6 @@ elif search_btn and not prompt:
 st.markdown("---")
 st.markdown(f"""
 <div style='text-align: center'>
-    <small>📊 Mfumo wa Taarifa - Azania 2006 | 
-    <span style='color: green'>Mode: {mode_display[search_mode]}</span></small>
+    <small>📊 Mfumo wa Taarifa - Azania 2006 
 </div>
 """, unsafe_allow_html=True)
