@@ -165,7 +165,7 @@ def get_relevant_pages_smart(user_prompt):
     # Sort by match score
     relevant_pages.sort(key=lambda x: x["match_score"], reverse=True)
     
-    return relevant_pages[:5]
+    return relevant_pages
 
 def safe_api_call(contents, max_retries=2):
     """Make API call with retry logic"""
@@ -204,7 +204,7 @@ def process_pdf_with_suggested_pages(user_prompt):
     # Ask user to select pages
     selected_pages = []
     if len(relevant_pages) > 1:
-        st.write("### 📄 Chagua Kurasa:")
+        st.write("#### 📄 Chagua Kurasa:")
         
         cols = st.columns(min(3, len(relevant_pages)))
         selected_indices = []
@@ -283,7 +283,7 @@ def process_pdf_with_suggested_pages(user_prompt):
         response_text += "\n---\n"
         response_text += "**💡 Usaidizi:**\n"
         response_text += "1. Tumia maneno mahususi zaidi kwa matokeo bora\n"
-        response_text += "2. Jaribu kutumia 'Text Explanation' option\n"
+        response_text += "2. Jaribu kutumia 'Taarifa ya maelezo' option\n"
     
     return response_text, selected_pages, []
 
@@ -338,8 +338,8 @@ with st.sidebar:
         ["text_explanation", "image_search"],
         format_func=lambda x: {
             # "normal": "🔍 Utafutaji wa Kawaida",
-            "text_explanation": "📝 Text Explanation (Direct)",
-            "image_search": "📸 Utafutaji wa Picha"
+            "text_explanation": "📝 Taarifa ya maelezo",
+            "image_search": "📸 Taarifa ya Picha"
         }[x]
     )
     
@@ -359,16 +359,17 @@ st.markdown("---")
 # Show current mode
 mode_display = {
     # "normal": "🔍 Utafutaji wa Kawaida",
-    "text_explanation": "📝 Text Explanation (Direct Code)",
-    "image_search": "📸 Utafutaji wa Picha"
+    "text_explanation": "📝 Taarifa ya maelezo",
+    "image_search": "📸 Taarifa ya Picha"
 }
 # st.info(f"**Hali ya Sasa:** {mode_display[search_mode]}")
 
 # Search input
 col1, col2 = st.columns([4, 1])
 with col1:
+    st.markdown("#### Andika hitajio")
     prompt = st.text_input(
-        "####🔍 **Andika hitajio lako:**"
+        ""
         # placeholder="Mfano: jina la mwanachama, namba ya kumbukumbu..."
     )
 
@@ -380,7 +381,7 @@ with col2:
 # Buttons
 col_btn1, col_btn2, col_btn3 = st.columns(3)
 with col_btn1:
-    search_btn = st.button("🔍 Tafuta Taarifa", type="primary", use_container_width=True)
+    search_btn = st.button("🔍 Tafuta Taarifa",use_container_width=True)
 with col_btn2:
     clear_btn = st.button("🗑️ Futa Yote", use_container_width=True)
 with col_btn3:
@@ -421,7 +422,7 @@ if search_btn and prompt:
         try:
             # MODE 1: TEXT EXPLANATION (YOUR DIRECT CODE)
             if search_mode == "text_explanation":
-                st.markdown("## 📝 Text Explanation (Direct Code)")
+                st.markdown("#### 📝 Taarifa ya maelezo")
                 st.markdown("---")
                 
                 try:
