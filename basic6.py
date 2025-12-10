@@ -34,7 +34,7 @@ for key in [api_key, api_key1, api_key2]:
             continue
 
 # Read PDF files
-data_folder = Path("./data/dhms")
+data_folder = Path("./data2")
 pdf_pages_data = []  # Store page data
 
 # Read PDF and split into pages
