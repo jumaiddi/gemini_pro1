@@ -19,6 +19,7 @@ working_client = None
 api_key = st.secrets.get("GOOGLE_API_KEY", "")
 api_key1 = st.secrets.get("GOOGLE_API_KEY1", "")
 api_key2 = st.secrets.get("GOOGLE_API_KEY2", "")
+api_key3 = st.secrets.get("GOOGLE_API_KEY3", "")
 
 # Test API keys
 for key in [api_key, api_key1, api_key2]:
@@ -34,74 +35,76 @@ for key in [api_key, api_key1, api_key2]:
             continue
 
 # Read PDF files
-data_folder = Path("./data1")
+data_folder = Path("./data2")
 pdf_pages_data = []  # Store page data
-
 # Read PDF and split into pages
-for pdf_filepath in data_folder.glob("*.pdf"):
-    try:
-        # Open PDF and split into pages
-        doc = fitz.open(pdf_filepath)
-        pdf_name = pdf_filepath.name
-        
-        for page_num in range(len(doc)):
-            # Get PDF page as image
-            page = doc[page_num]
-            pix = page.get_pixmap()
-            img_bytes = pix.tobytes("png")
+if len(pdf_pages_data)==0:  
+    for pdf_filepath in data_folder.glob("*.pdf"):
+        try:
+            # Open PDF and split into pages
+            doc = fitz.open(pdf_filepath)
+            pdf_name = pdf_filepath.name
             
-            # Convert to PIL Image
-            pil_image = Image.open(io.BytesIO(img_bytes))
+            for page_num in range(len(doc)):
+                # Get PDF page as image
+                page = doc[page_num]
+                pix = page.get_pixmap()
+                img_bytes = pix.tobytes("png")
+                
+                # Convert to PIL Image
+                pil_image = Image.open(io.BytesIO(img_bytes))
+                
+                # Create single page PDF
+                temp_pdf = fitz.open()
+                temp_pdf.insert_pdf(doc, from_page=page_num, to_page=page_num)
+                temp_pdf_bytes = temp_pdf.write()
+                temp_pdf.close()
+                
+                # Store page data
+                pdf_page = types.Part.from_bytes(
+                    data=temp_pdf_bytes,
+                    mime_type="application/pdf"
+                )
+                
+                pdf_pages_data.append({
+                    "pdf_name": pdf_name,
+                    "page_number": page_num + 1,
+                    "pdf_data": pdf_page,
+                    "image": pil_image,
+                    "page_text": page.get_text("text")
+                })
             
-            # Create single page PDF
-            temp_pdf = fitz.open()
-            temp_pdf.insert_pdf(doc, from_page=page_num, to_page=page_num)
-            temp_pdf_bytes = temp_pdf.write()
-            temp_pdf.close()
+            doc.close()
             
-            # Store page data
-            pdf_page = types.Part.from_bytes(
-                data=temp_pdf_bytes,
-                mime_type="application/pdf"
-            )
-            
-            pdf_pages_data.append({
-                "pdf_name": pdf_name,
-                "page_number": page_num + 1,
-                "pdf_data": pdf_page,
-                "image": pil_image,
-                "full_image_bytes": img_bytes,
-                "page_text": page.get_text("text")
-            })
-        
-        doc.close()
-        
-    except Exception as e:
-        st.error(f"❌ {pdf_filepath.name}: {str(e)}")
+        except Exception as e:
+            st.error(f"❌ {pdf_filepath.name}: {str(e)}")
 all_pdf_data=[]
-for pdf_filepath in data_folder.glob("*.pdf"):
-    doc_dat = pdf_filepath.read_bytes()
-    pdf=types.Part.from_bytes(
-    data=doc_dat,
-    mime_type="application/pdf"
-    )
-    all_pdf_data.append(pdf)
-    print(f"Nimesoma faili kwa mafanikio: {pdf_filepath.name}")
+if len(all_pdf_data)==0:
+    for pdf_filepath in data_folder.glob("*.pdf"):
+        doc_dat = pdf_filepath.read_bytes()
+        pdf=types.Part.from_bytes(
+        data=doc_dat,
+        mime_type="application/pdf"
+        )
+        all_pdf_data.append(pdf)
+        print(f"Nimesoma faili kwa mafanikio: {pdf_filepath.name}")
 
 def process_pdf_and_query(user_prompt):
     contents = [all_pdf_data, user_prompt]
-    for key in [api_key,api_key1,api_key2]:
+    response_text=None
+    for key in [api_key,api_key1,api_key2,api_key3]:
         try:
             working_client = genai.Client(api_key=key)
             response = working_client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=contents,
             )
+            response_text=response.text
             break
         except Exception as e:
             continue
         
-    return response.text
+    return response_text
 # Cache for faster performance
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_relevant_pages_smart(user_prompt):
@@ -197,37 +200,36 @@ def process_pdf_with_suggested_pages(user_prompt):
     
     # Ask user to select pages
     selected_pages = []
-    if len(relevant_pages) > 1:
-        st.write("#### 📄 Chagua Kurasa:")
+    # if len(relevant_pages) > 1:
+    #     st.write("#### 📄 Chagua Kurasa:")
         
-        cols = st.columns(min(3, len(relevant_pages)))
-        selected_indices = []
+    #     cols = st.columns(min(3, len(relevant_pages)))
+    #     selected_indices = []
         
-        for i, page in enumerate(relevant_pages):
-            with cols[i % 3]:
-                st.image(
-                    page["image"],
-                    caption=f"Ukurasa {page['page_number']}",
-                    use_container_width=True
-                )
+    #     for i, page in enumerate(relevant_pages):
+    #         with cols[i % 3]:
+    #             st.image(
+    #                 page["image"],
+    #                 caption=f"Ukurasa {page['page_number']}",
+    #                 use_container_width=True
+    #             )
                 
-                st.caption(f"**Matched:** {', '.join(page['matched_words'][:2])}")
+    #             st.caption(f"**Matched:** {', '.join(page['matched_words'][:2])}")
                 
-                if st.checkbox(
-                    f"Chagua ukurasa {page['page_number']}",
-                    key=f"select_page_{i}",
-                    value=True
-                ):
-                    selected_indices.append(i)
+    #             if st.checkbox(
+    #                 f"Chagua ukurasa {page['page_number']}",
+    #                 key=f"select_page_{i}",
+    #                 value=True
+    #             ):
+    #                 selected_indices.append(i)
         
-        selected_pages = [relevant_pages[i] for i in selected_indices]
-    else:
-        selected_pages = relevant_pages
-        st.image(
-            relevant_pages[0]["image"],
-            caption=f"Ukurasa {relevant_pages[0]['page_number']}",
-            use_container_width=True
-        )
+    #     selected_pages = [relevant_pages[i] for i in selected_indices]
+    selected_pages = relevant_pages
+    # st.image(
+    #     relevant_pages[0]["image"],
+    #     caption=f"Ukurasa {relevant_pages[0]['page_number']}",
+    #     use_container_width=True
+    # )
     
     if not selected_pages:
         return "Hujachagua kurasa yoyote. Tafadhali chagua angalau ukurasa mmoja.", [], []
@@ -316,7 +318,7 @@ def extract_images_from_pages(selected_pages):
 
 # Streamlit UI
 st.set_page_config(
-    page_title="Mfumo wa Taarifa - Azania 2006",
+    page_title="Mfumo wa Mwongozo wa Mtumiaji wa (DHMS)",
     page_icon="📄",
     layout="wide"
 )
@@ -339,7 +341,7 @@ with st.sidebar:
     st.markdown("---")
 
 # Main content
-st.subheader("📄 Mfumo wa Taarifa - Azania 2006")
+st.subheader("📄 Mfumo wa Mwongozo wa Mtumiaji wa (DHMS)")
 st.markdown("---")
 
 # Show current mode
@@ -456,6 +458,6 @@ elif search_btn and not prompt:
 st.markdown("---")
 st.markdown(f"""
 <div style='text-align: center'>
-    <small>📊 Mfumo wa Taarifa - Azania 2006 
+    <small>📊 Mfumo wa Mwongozo wa Mtumiaji wa (DHMS)
 </div>
 """, unsafe_allow_html=True)

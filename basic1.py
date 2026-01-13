@@ -7,10 +7,6 @@ from PIL import Image
 from pathlib import Path
 import streamlit as st
 import base64
-# from langchain_community.document_loaders import PyPDFDirectoryLoader
-# from langchain_community.vectorstores import Pinecone
-# from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
-# from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 load_dotenv()
 working_client=None
@@ -26,45 +22,8 @@ for key in [api_key,api_key1,api_key2]:
         break
     except errors.APIError as e:
         continue
-    
-# prompt=input("Inter input: ")
-# image=Image.open("../rag_demo/image01.png")
-# chat=client.chats.create(model="gemini-2.5-pro")
-# userinput=input("User :")
-# while userinput != "endchat": 
-#     chat.append(f"User :{userinput}") 
-#     response=client.models.generate_content(
-#         model="gemini-2.5-pro",
-#         contents=chat,
-#         config=types.GenerateContentConfig(
-#             system_instruction="Answer 1 line not more than 50 words"
-#         ))
-#     chat.append(f"chatbot : {response.text}")
-#     print(response.text)
-#     userinput=input("User :")
 
-# while userinput!="endchat":
-#     response=chat.send_message(userinput)
-#     print("statbot :",response.text)
-#     userinput=input("User :")
-
-# grounding_tools=types.Tool(
-#     google_search=types.GoogleSearch()
-# )
-
-# response=client.models.generate_content(
-#     model="gemini-2.5-flash",
-#     contents="Who won uero cup 2024",
-#     config=types.GenerateContentConfig(
-#         tools=[grounding_tools]
-#     )
-# )
-# print(response.text)
-
-# filepath=Path("/data/AZANIA.pdf")
-# doc_dat=filepath.read_bytes()
-
-data_folder = Path("./data")
+data_folder = Path("./data1")
 all_pdf_data=[]
 
 for pdf_filepath in data_folder.glob("*.pdf"):
@@ -75,16 +34,10 @@ for pdf_filepath in data_folder.glob("*.pdf"):
     )
     all_pdf_data.append(pdf)
     print(f"Nimesoma faili kwa mafanikio: {pdf_filepath.name}")
-
-load_dotenv()
-
+    
 def process_pdf_and_query(user_prompt):
-
-    # pdf=types.Part.from_bytes(
-    #     data=doc_dat,
-    #     mime_type="application/pdf"
-    # )
     contents = [all_pdf_data, user_prompt]
+    response_text=None
     for key in [api_key,api_key1,api_key2]:
         try:
             working_client = genai.Client(api_key=key)
@@ -92,24 +45,17 @@ def process_pdf_and_query(user_prompt):
                 model="gemini-2.5-flash",
                 contents=contents,
             )
+            print("HHHHHHHHHHHHHHHHHHHHHH ",response.text)
+            response_text=response.text
             break
         except Exception as e:
+            print("MMMMMMMMMMMMMMMMMM",e)
             continue
-        
-    return response.text
+    return response_text
         
 
 
 st.markdown("<h5>📄 Mfumo wa kupata taarifa za Wanachama wa Azania 2006</h5>", unsafe_allow_html=True)
-
-# uploaded_file = st.file_uploader(
-#     "Pakia faili lako la PDF (Maks. 20MB)", 
-#     type=["pdf"]
-# )
-
-# if uploaded_file is not None:
-#     # Onyesha faili limepakuliwa
-#     st.success(f"Faili **{uploaded_file.name}** limepakuliwa kwa mafanikio.")
     
 st.markdown("###### Andika Hitajio Lako") 
 

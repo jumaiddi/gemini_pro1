@@ -10,3 +10,4 @@ langchain-google-genai
 pypdf
 pinecone
 PyMuPDF
+sentence-transformers

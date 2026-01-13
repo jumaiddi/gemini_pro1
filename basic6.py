@@ -18,6 +18,7 @@ load_dotenv()
 working_client = None
 api_key = st.secrets.get("GOOGLE_API_KEY", "")
 api_key1 = st.secrets.get("GOOGLE_API_KEY1", "")
+api_key3=st.secrets.get("GOOGLE_API_KEY3","")
 api_key2 = st.secrets.get("GOOGLE_API_KEY2", "")
 
 # Test API keys
@@ -160,7 +161,7 @@ def get_relevant_pages_smart(user_prompt):
     relevant_pages.sort(key=lambda x: x["match_score"], reverse=True)
     
     return relevant_pages
-
+response=None
 def safe_api_call(contents, max_retries=2):
     """Make API call with retry logic"""
     for key in [api_key, api_key1, api_key2]:
