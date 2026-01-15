@@ -398,7 +398,7 @@ if search_btn and prompt:
                     
                     st.subheader("📋 Majibu:")
                     st.info(response_text)
-                    st.success("✅ Maelezo yametolewa kwa kutumia direct code!")
+                    st.success("✅ Maelezo yametolewa kwa kutumia nyaraka zilizothibitishwa!")
                     
                 except Exception as e:
                     st.error(f"Kosa limetokea wakati wa kuwasiliana na API: {e}")
