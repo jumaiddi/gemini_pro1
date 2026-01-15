@@ -35,9 +35,10 @@ for key in [api_key, api_key1, api_key2,api_key3,api_key4]:
 
 # Read PDF files
 data_folder = Path("./data2")
-pdf_pages_data = []  # Store page data
+pdf_pages_data1 = []  # Store page data
 # Read PDF and split into pages
-if len(pdf_pages_data)==0:  
+@st.cache_resource
+def pdf_pages_data():
     for pdf_filepath in data_folder.glob("*.pdf"):
         try:
             # Open PDF and split into pages
@@ -65,18 +66,19 @@ if len(pdf_pages_data)==0:
                     mime_type="application/pdf"
                 )
                 
-                pdf_pages_data.append({
+                pdf_pages_data1.append({
                     "pdf_name": pdf_name,
                     "page_number": page_num + 1,
                     "pdf_data": pdf_page,
                     "image": pil_image,
                     "page_text": page.get_text("text")
                 })
-            
             doc.close()
             
         except Exception as e:
             st.error(f"❌ {pdf_filepath.name}: {str(e)}")
+            
+    return pdf_pages_data1
 all_pdf_data=[]
 if len(all_pdf_data)==0:
     for pdf_filepath in data_folder.glob("*.pdf"):
@@ -120,7 +122,8 @@ def get_relevant_pages_smart(user_prompt):
     """Use only text-based search, NO API calls"""
     relevant_pages = []
     
-    if not pdf_pages_data:
+    if not pdf_pages_data():
+        print("QQQQQQQQQQQQQQQQ")
         return []
     
     # Extract keywords from prompt
@@ -133,7 +136,7 @@ def get_relevant_pages_smart(user_prompt):
         prompt_keywords = [user_prompt.lower()]
     
     # Search through all pages
-    for page_data in pdf_pages_data:
+    for page_data in pdf_pages_data():
         text = page_data["page_text"].lower()
         
         # Check each keyword
@@ -209,36 +212,7 @@ def process_pdf_with_suggested_pages(user_prompt):
     
     # Ask user to select pages
     selected_pages = []
-    # if len(relevant_pages) > 1:
-    #     st.write("#### 📄 Chagua Kurasa:")
-        
-    #     cols = st.columns(min(3, len(relevant_pages)))
-    #     selected_indices = []
-        
-    #     for i, page in enumerate(relevant_pages):
-    #         with cols[i % 3]:
-    #             st.image(
-    #                 page["image"],
-    #                 caption=f"Ukurasa {page['page_number']}",
-    #                 use_container_width=True
-    #             )
-                
-    #             st.caption(f"**Matched:** {', '.join(page['matched_words'][:2])}")
-                
-    #             if st.checkbox(
-    #                 f"Chagua ukurasa {page['page_number']}",
-    #                 key=f"select_page_{i}",
-    #                 value=True
-    #             ):
-    #                 selected_indices.append(i)
-        
-    #     selected_pages = [relevant_pages[i] for i in selected_indices]
     selected_pages = relevant_pages
-    # st.image(
-    #     relevant_pages[0]["image"],
-    #     caption=f"Ukurasa {relevant_pages[0]['page_number']}",
-    #     use_container_width=True
-    # )
     
     if not selected_pages:
         return "Hujachagua kurasa yoyote. Tafadhali chagua angalau ukurasa mmoja.", [], []
@@ -390,11 +364,11 @@ if clear_btn:
 if preview_btn:
     st.markdown("### 📚 Kurasa Zote Zilizosomwa")
     
-    if not pdf_pages_data:
+    if not pdf_pages_data():
         st.warning("Hakuna PDF files zilizosomwa.")
     else:
         pdf_groups = {}
-        for page in pdf_pages_data:
+        for page in pdf_pages_data():
             pdf_name = page["pdf_name"]
             if pdf_name not in pdf_groups:
                 pdf_groups[pdf_name] = []
