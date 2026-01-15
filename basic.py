@@ -20,19 +20,18 @@ api_key = st.secrets.get("GOOGLE_API_KEY", "")
 api_key1 = st.secrets.get("GOOGLE_API_KEY1", "")
 api_key2 = st.secrets.get("GOOGLE_API_KEY2", "")
 api_key3 = st.secrets.get("GOOGLE_API_KEY3", "")
+api_key4 = st.secrets.get("GOOGLE_API_KEY4", "")
 
 # Test API keys
-for key in [api_key, api_key1, api_key2]:
-    if key:
-        try:
-            client = genai.Client(api_key=key)
-            client.models.list()
-            working_client = client
-            break
-        except errors.APIError as e:
-            continue
-        except Exception as e:
-            continue
+for key in [api_key, api_key1, api_key2,api_key3,api_key4]:
+    try:
+        client = genai.Client(api_key=key)
+        client.models.list()
+        working_client = client
+        print("FFFFFFFFFFFFFFF")
+        break
+    except Exception as e:
+        continue
 
 # Read PDF files
 data_folder = Path("./data2")
@@ -90,9 +89,16 @@ if len(all_pdf_data)==0:
         print(f"Nimesoma faili kwa mafanikio: {pdf_filepath.name}")
 
 def process_pdf_and_query(user_prompt):
-    contents = [all_pdf_data, user_prompt]
+    relevant_pages = get_relevant_pages_smart(user_prompt)
+    
+    if not relevant_pages:
+        return "Samahani, sijaona kurasa zinazohusiana na swali lako kwenye mafaili yako."
+    top_pages = relevant_pages[:]
+    contents = [user_prompt]
+    for p in relevant_pages:
+        contents.append(p["data"])
     response_text=None
-    for key in [api_key,api_key1,api_key2,api_key3]:
+    for key in [api_key,api_key1,api_key2,api_key3,api_key4]:
         try:
             working_client = genai.Client(api_key=key)
             response = working_client.models.generate_content(
@@ -100,8 +106,11 @@ def process_pdf_and_query(user_prompt):
                 contents=contents,
             )
             response_text=response.text
+            print("MMMMMMMMMMMMMMMMM")
             break
         except Exception as e:
+            print("BBBBBBBBBBBB")
+            print(e)
             continue
         
     return response_text
@@ -166,7 +175,7 @@ def get_relevant_pages_smart(user_prompt):
 
 def safe_api_call(contents, max_retries=2):
     """Make API call with retry logic"""
-    for key in [api_key, api_key1, api_key2]:
+    for key in [api_key, api_key1, api_key2,api_key3]:
         for attempt in range(max_retries):
             try:
                 client = genai.Client(api_key=key)
