@@ -16,12 +16,11 @@ load_dotenv()
 
 # Initialize working client
 working_client = None
-api_key = st.secrets.get("GOOGLE_API_KEY", "")
-api_key1 = st.secrets.get("GOOGLE_API_KEY1", "")
-api_key2 = st.secrets.get("GOOGLE_API_KEY2", "")
-api_key3 = st.secrets.get("GOOGLE_API_KEY3", "")
-api_key4 = st.secrets.get("GOOGLE_API_KEY4", "")
-
+api_key = st.secrets["GOOGLE_API_KEY"]
+api_key1 = st.secrets["GOOGLE_API_KEY1"]
+api_key2 = st.secrets["GOOGLE_API_KEY2"]
+api_key3 = st.secrets["GOOGLE_API_KEY3"]
+api_key4 = st.secrets["GOOGLE_API_KEY4"]
 # Test API keys
 for key in [api_key, api_key1, api_key2,api_key3,api_key4]:
     try:
